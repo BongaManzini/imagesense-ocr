@@ -1,0 +1,6 @@
+flask
+pytesseract
+Pillow
+openpyxl
+pdf2image
+python-docx

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OCR Results – ImageSense</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-indigo-500/20">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="/" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25">
+          <i data-lucide="scan-text" class="w-5 h-5"></i>
+        </a>
+        <div>
+          <h1 class="text-base font-bold text-white tracking-tight">ImageSense</h1>
+          <p class="text-xs text-slate-400 font-mono">Conversion Results</p>
+        </div>
+      </div>
+      <a href="/" class="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i> Convert Another
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-6xl mx-auto px-6 py-10 flex-1 w-full">
+    <!-- Success Banner & Download Action -->
+    <div class="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 sm:p-8 mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+      <div>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono mb-2">
+          <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+          Conversion Completed Successfully
+        </div>
+        <h2 class="text-2xl font-bold text-white tracking-tight">{{ filename }}</h2>
+        <p class="text-xs text-slate-400 mt-1 font-mono">
+          Extracted {{ row_count }} rows & {{ col_count }} columns
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3 w-full sm:w-auto">
+        <a 
+          href="/download/{{ excel_filename }}" 
+          class="flex-1 sm:flex-initial py-3 px-6 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-sm shadow-xl shadow-emerald-500/25 flex items-center justify-center gap-2 transition-all"
+        >
+          <i data-lucide="download" class="w-4 h-4"></i>
+          Download Excel (.xlsx)
+        </a>
+      </div>
+    </div>
+
+    <!-- Data Preview Table -->
+    <div class="bg-slate-900/50 border border-slate-800 rounded-3xl p-6 overflow-hidden">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="table-2" class="w-4 h-4 text-cyan-400"></i>
+          Extracted Spreadsheet Preview
+        </h3>
+        <span class="text-xs font-mono text-slate-400">Live preview</span>
+      </div>
+
+      <div class="overflow-x-auto mt-4 max-h-[500px]">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            {% if table_data and table_data|length > 0 %}
+            <tr class="bg-slate-800/80 text-white font-mono uppercase text-[11px] tracking-wider">
+              {% for cell in table_data[0] %}
+              <th class="p-3 border border-slate-700/80">{{ cell }}</th>
+              {% endfor %}
+            </tr>
+            {% endif %}
+          </thead>
+          <tbody class="divide-y divide-slate-800">
+            {% for row in table_data[1:] %}
+            <tr class="hover:bg-slate-800/40 transition-colors">
+              {% for cell in row %}
+              <td class="p-3 border border-slate-800 font-mono text-slate-300">{{ cell }}</td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Raw OCR Text Card -->
+    <div class="mt-8 bg-slate-900/30 border border-slate-800/80 rounded-2xl p-5">
+      <details>
+        <summary class="text-xs font-mono text-slate-400 hover:text-white cursor-pointer select-none flex items-center gap-2">
+          <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+          View Raw OCR Text Output
+        </summary>
+        <pre class="mt-4 p-4 rounded-xl bg-slate-950 font-mono text-xs text-slate-400 overflow-x-auto whitespace-pre-wrap">{{ raw_text }}</pre>
+      </details>
+    </div>
+  </main>
+
+  <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500 font-mono">
+    ImageSense OCR Pipeline • Built by Bonga Manzini
+  </footer>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
