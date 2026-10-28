@@ -17,15 +17,15 @@ A web-based application that leverages Optical Character Recognition (OCR) to ex
 
 ## Tech Stack
 
-| Layer        | Technology                          |
+| Layer    | Technology             |
 |--------------|-------------------------------------|
-| Language     | Python 3.8+                         |
-| Web Framework| Flask                               |
-| OCR Engine   | Tesseract OCR (via `pytesseract`)   |
-| PDF Renderer | Poppler (via `pdf2image`)           |
-| Image Processing | Pillow (PIL)                    |
-| Excel Output | openpyxl                            |
-| Word Support | python-docx                         |
+| Language   | Python 3.8+             |
+| Web Framework| Flask                |
+| OCR Engine  | Tesseract OCR (via `pytesseract`)  |
+| PDF Renderer | Poppler (via `pdf2image`)      |
+| Image Processing | Pillow (PIL)          |
+| Excel Output | openpyxl              |
+| Word Support | python-docx             |
 
 ---
 
@@ -101,11 +101,11 @@ brew install tesseract poppler
 ```
 ImageSense/
 ├── ocr-to-excel/
-│   ├── app.py              # Main Flask application
-│   ├── requirements.txt    # Python dependencies
-│   ├── templates/          # HTML templates (Jinja2)
-│   ├── uploads/            # Temporary uploaded files
-│   └── processed/          # Generated Excel output files
+│  ├── app.py       # Main Flask application
+│  ├── requirements.txt  # Python dependencies
+│  ├── templates/     # HTML templates (Jinja2)
+│  ├── uploads/      # Temporary uploaded files
+│  └── processed/     # Generated Excel output files
 └── project_root/
     └── app/
         ├── static/         # CSS, JS, and static assets

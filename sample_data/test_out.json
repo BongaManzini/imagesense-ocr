@@ -1,0 +1,46 @@
+{
+  "confidence": 90.9,
+  "row_count": 6,
+  "col_count": 1,
+  "headers": [
+    "INVOICE #INV-2026-801"
+  ],
+  "rows": [
+    [
+      "Date: October 27, 2026"
+    ],
+    [
+      "PRD-O1 Cloud Database Server 2 $120.00 $240.00"
+    ],
+    [
+      "PRD-02 High-Speed Fiber Router 1 $350.00 $350.00"
+    ],
+    [
+      "PRD-03 SSL Security Certificate 3 $46.00 $135.00"
+    ],
+    [
+      "PRD-O4 Managed Backup 1TB 4 $25.00 $100.00"
+    ]
+  ],
+  "full_table": [
+    [
+      "INVOICE #INV-2026-801"
+    ],
+    [
+      "Date: October 27, 2026"
+    ],
+    [
+      "PRD-O1 Cloud Database Server 2 $120.00 $240.00"
+    ],
+    [
+      "PRD-02 High-Speed Fiber Router 1 $350.00 $350.00"
+    ],
+    [
+      "PRD-03 SSL Security Certificate 3 $46.00 $135.00"
+    ],
+    [
+      "PRD-O4 Managed Backup 1TB 4 $25.00 $100.00"
+    ]
+  ],
+  "raw_text": "INVOICE #INV-2026-801\n\nDate: October 27, 2026\n\nPRD-O1 Cloud Database Server 2 $120.00 $240.00\nPRD-02 High-Speed Fiber Router 1 $350.00 $350.00\nPRD-03 SSL Security Certificate 3 $46.00 $135.00\nPRD-O4 Managed Backup 1TB 4 $25.00 $100.00\n"
+}
