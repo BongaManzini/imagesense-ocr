@@ -3,14 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ImageSense – OCR to Excel Converter</title>
+  <title>ImageSense – Intelligent Document & Table OCR for Small Businesses</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    .loader-spin {
+      border-top-color: #6366f1;
+      animation: spinner 0.8s linear infinite;
+    }
+    @keyframes spinner {
+      to { transform: rotate(360deg); }
+    }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-indigo-500/20">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-indigo-500/20 font-sans">
 
   <!-- Header -->
-  <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
+  <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-50">
     <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25">
@@ -18,79 +27,227 @@
         </div>
         <div>
           <h1 class="text-base font-bold text-white tracking-tight">ImageSense</h1>
-          <p class="text-xs text-slate-400 font-mono">OCR Image & PDF to Excel Converter</p>
+          <p class="text-xs text-slate-400 font-mono">SMME Document-to-Spreadsheet & Accounting Pipeline</p>
         </div>
       </div>
-      <div class="text-xs text-slate-400 flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Engine Ready
+      <div class="text-xs text-slate-400 flex items-center gap-2 font-mono">
+        {% if engine_ready %}
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50"></span> Neural OCR & Table Engine Active
+        {% else %}
+        <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> Local Engine
+        {% endif %}
       </div>
     </div>
   </header>
 
   <!-- Main Content -->
-  <main class="max-w-4xl mx-auto px-6 py-12 flex-1 w-full">
-    <div class="text-center mb-10">
-      <span class="px-3 py-1 rounded-full text-xs font-mono bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-medium">
-        Intelligent Optical Character Recognition
+  <main class="max-w-5xl mx-auto px-6 py-10 flex-1 w-full">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="mb-6 space-y-2">
+          {% for message in messages %}
+            <div class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-mono flex items-center gap-3">
+              <i data-lucide="alert-triangle" class="w-4 h-4 flex-shrink-0"></i>
+              <span>{{ message }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="text-center mb-8">
+      <span class="px-3.5 py-1 rounded-full text-xs font-mono bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-medium">
+        Small Business (SMME) Ready • Accounting Exports • Human-in-the-Loop
       </span>
       <h2 class="text-3xl sm:text-4xl font-extrabold text-white mt-4 tracking-tight">
-        Convert Documents & Invoices into <span class="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">Excel Spreadsheets</span>
+        Convert Paper & Photos into <span class="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">Validated Spreadsheets</span>
       </h2>
-      <p class="text-slate-400 text-sm mt-3 max-w-xl mx-auto">
-        Upload scanned invoices, price lists, receipts, or data tables in PNG, JPG, or PDF. We extract the text, detect tables, and generate formatted Excel (.xlsx) files.
+      <p class="text-slate-400 text-sm mt-3 max-w-2xl mx-auto">
+        Designed for small businesses, contractors, clinics, and couriers. Automatically removes phone shadows, straightens angled camera shots, validates invoice math, and exports directly to <strong>Excel, Sage Pastel, Xero, and QuickBooks</strong>.
       </p>
     </div>
 
-    <!-- Upload Box -->
-    <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-8 shadow-2xl backdrop-blur-xl">
+    <!-- Upload & Configuration Form -->
+    <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
       <form action="/upload" method="post" enctype="multipart/form-data" id="upload-form">
+        
+        <!-- Dropzone Area -->
         <div 
           id="dropzone" 
-          class="border-2 border-dashed border-slate-700 hover:border-indigo-500/70 rounded-2xl p-10 text-center transition-all cursor-pointer bg-slate-950/40 hover:bg-indigo-950/10"
+          class="border-2 border-dashed border-slate-700 hover:border-indigo-500/70 rounded-2xl p-8 sm:p-10 text-center transition-all cursor-pointer bg-slate-950/40 hover:bg-indigo-950/10"
         >
-          <input type="file" name="document" id="file-input" class="hidden" accept=".png,.jpg,.jpeg,.webp,.tiff,.bmp,.pdf" required>
+          <input 
+            type="file" 
+            name="document" 
+            id="file-input" 
+            class="hidden" 
+            accept=".png,.jpg,.jpeg,.webp,.tiff,.bmp,.pdf,.gif" 
+            multiple 
+            required
+          >
           <div class="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mx-auto text-indigo-400 mb-4 shadow-inner">
             <i data-lucide="upload-cloud" class="w-8 h-8"></i>
           </div>
-          <h3 class="text-base font-bold text-white">Click to browse or drop document here</h3>
-          <p class="text-xs text-slate-400 mt-1">Supports PNG, JPG, JPEG, WEBP, TIFF, or PDF (Up to 16MB)</p>
-          <p id="file-name" class="mt-4 text-xs font-mono text-cyan-400 hidden"></p>
+          <h3 class="text-base font-bold text-white">Click to browse or drop images and documents here</h3>
+          <p class="text-xs text-slate-400 mt-1">Supports smartphone camera photos (WhatsApp receipts, delivery slips) and multi-page PDFs</p>
+          <p class="text-[11px] text-indigo-400 font-mono mt-1">Upload single files or multi-document batches</p>
+
+          <!-- Selected files badge -->
+          <div id="file-info" class="mt-4 hidden inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800/80 border border-cyan-500/30 text-xs font-mono text-cyan-300">
+            <i data-lucide="files" class="w-4 h-4"></i>
+            <span id="file-name">0 files selected</span>
+          </div>
         </div>
 
+        <!-- Processing Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 p-5 rounded-2xl bg-slate-950/40 border border-slate-800/80">
+          
+          <!-- Schema Preset -->
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5 flex items-center gap-1.5">
+              <i data-lucide="layout-template" class="w-3.5 h-3.5 text-cyan-400"></i>
+              SMME Schema Preset Mode
+            </label>
+            <select 
+              name="schema" 
+              class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+            >
+              <option value="auto" selected>✨ Auto-Detect Industry Schema</option>
+              <option value="retail_invoice">🛒 Retail / Invoice / Supplier Note (Qty × Price = Total)</option>
+              <option value="logistics_waybill">🚚 Logistics / Proof of Delivery (POD) / Waybill</option>
+              <option value="construction_timesheet">🔨 Construction / Site Timesheet & Material Slip</option>
+              <option value="medical_clinic">🩺 Medical / Clinic Lab Test Results</option>
+              <option value="education_register">🎓 Education / Attendance Register & Scores</option>
+              <option value="bank_statement">🏦 Bank Statement & Ledger Transactions</option>
+              <option value="generic">📋 Generic Table Grid (Auto-Layout)</option>
+            </select>
+          </div>
+
+          <!-- Enhancement Preset -->
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5 flex items-center gap-1.5">
+              <i data-lucide="sliders" class="w-3.5 h-3.5 text-indigo-400"></i>
+              Image Processing Preset
+            </label>
+            <select 
+              name="preset" 
+              class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+            >
+              <option value="auto" selected>Auto / Document (Balanced OCR)</option>
+              <option value="invoice">Invoice & Tables (Reinforce Grid Lines)</option>
+              <option value="receipt">Receipt (Thermal / Faint Paper)</option>
+              <option value="clean_document">Clean Document (High Contrast)</option>
+              <option value="raw">Raw (Unfiltered)</option>
+            </select>
+          </div>
+
+          <!-- Advanced Preprocessing Toggles -->
+          <div class="md:col-span-2 pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-6">
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="perspective" class="w-4 h-4 rounded text-indigo-600 bg-slate-900 border-slate-700 focus:ring-0" checked>
+              <span class="text-xs text-slate-300">4-Point Perspective Correction <span class="text-slate-500">(Flattens angled phone shots)</span></span>
+            </label>
+
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="shadows" class="w-4 h-4 rounded text-indigo-600 bg-slate-900 border-slate-700 focus:ring-0" checked>
+              <span class="text-xs text-slate-300">Shadow & Light Removal <span class="text-slate-500">(Fixes room lighting)</span></span>
+            </label>
+
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="deskew" class="w-4 h-4 rounded text-indigo-600 bg-slate-900 border-slate-700 focus:ring-0" checked>
+              <span class="text-xs text-slate-300">Auto-Deskew <span class="text-slate-500">(Straightens tilt)</span></span>
+            </label>
+
+            <input type="hidden" name="psm" value="6">
+          </div>
+        </div>
+
+        <!-- Submit Button -->
         <button 
           type="submit" 
-          class="w-full mt-6 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-cyan-600 text-white font-bold text-sm shadow-xl shadow-indigo-500/25 transition-all flex items-center justify-center gap-2"
+          id="submit-btn"
+          class="w-full mt-6 py-4 px-6 rounded-2xl bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-cyan-600 text-white font-bold text-sm shadow-xl shadow-indigo-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
-          <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
-          Extract & Convert to Excel
+          <i data-lucide="scan" class="w-4 h-4"></i>
+          <span id="btn-text">Extract & Convert to Excel</span>
         </button>
+
+        <!-- Loading State Spinner -->
+        <div id="loading-state" class="hidden mt-6 text-center p-6 rounded-2xl bg-slate-950/80 border border-indigo-500/30">
+          <div class="w-8 h-8 rounded-full border-4 border-slate-700 loader-spin mx-auto mb-3"></div>
+          <p class="text-sm font-bold text-white">Flattening Perspective, Reading Grid & Auditing Calculations...</p>
+          <p class="text-xs text-slate-400 mt-1 font-mono">Running morphological table extraction and arithmetic integrity verification.</p>
+        </div>
       </form>
     </div>
 
-    <!-- Feature Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-12 text-center">
-      <div class="p-5 rounded-2xl bg-slate-900/40 border border-slate-800">
-        <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto mb-3">
-          <i data-lucide="table" class="w-4 h-4"></i>
-        </div>
-        <h4 class="text-xs font-bold text-white uppercase tracking-wider">Table Detection</h4>
-        <p class="text-xs text-slate-400 mt-1">Auto-aligns columns, rows, and headers from scanned tabular text.</p>
+    <!-- Practical SMME Use Cases -->
+    <div class="mt-12">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="briefcase" class="w-4 h-4 text-indigo-400"></i>
+          Practical Use Cases Across SMME Fields
+        </h3>
+        <span class="text-xs font-mono text-slate-400">Zero Manual Data Entry</span>
       </div>
 
-      <div class="p-5 rounded-2xl bg-slate-900/40 border border-slate-800">
-        <div class="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center mx-auto mb-3">
-          <i data-lucide="palette" class="w-4 h-4"></i>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        
+        <!-- Retail -->
+        <div class="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-indigo-500/50 transition-colors">
+          <div class="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-wider mb-1">
+            <i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i> Retail & Spaza Shops
+          </div>
+          <p class="text-xs text-slate-300 font-semibold mt-1">Supplier Invoices & Delivery Slips</p>
+          <p class="text-[11px] text-slate-400 mt-1">Extracts Code, Description, Qty, Price, VAT, Total. Validates line arithmetic into POS software.</p>
         </div>
-        <h4 class="text-xs font-bold text-white uppercase tracking-wider">Styled Excel</h4>
-        <p class="text-xs text-slate-400 mt-1">Applies headers, auto-width adjustments, and clean cell borders.</p>
-      </div>
 
-      <div class="p-5 rounded-2xl bg-slate-900/40 border border-slate-800">
-        <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto mb-3">
-          <i data-lucide="shield-check" class="w-4 h-4"></i>
+        <!-- Logistics -->
+        <div class="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-cyan-500/50 transition-colors">
+          <div class="flex items-center gap-2 text-cyan-400 font-bold text-xs uppercase tracking-wider mb-1">
+            <i data-lucide="truck" class="w-3.5 h-3.5"></i> Logistics & Couriers
+          </div>
+          <p class="text-xs text-slate-300 font-semibold mt-1">Proof of Delivery (POD) & Waybills</p>
+          <p class="text-[11px] text-slate-400 mt-1">Extracts Waybill #, Recipient Name, Timestamp, Destination, and Delivery Status automatically.</p>
         </div>
-        <h4 class="text-xs font-bold text-white uppercase tracking-wider">Local & Secure</h4>
-        <p class="text-xs text-slate-400 mt-1">Runs self-contained without sending your documents to external third parties.</p>
+
+        <!-- Construction -->
+        <div class="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-amber-500/50 transition-colors">
+          <div class="flex items-center gap-2 text-amber-400 font-bold text-xs uppercase tracking-wider mb-1">
+            <i data-lucide="hard-hat" class="w-3.5 h-3.5"></i> Construction & Contractors
+          </div>
+          <p class="text-xs text-slate-300 font-semibold mt-1">Site Timesheets & Material Slips</p>
+          <p class="text-[11px] text-slate-400 mt-1">Tracks Worker ID, Hours Worked, Site Name, Material, Unit Price for daily job costing.</p>
+        </div>
+
+        <!-- Healthcare -->
+        <div class="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-rose-500/50 transition-colors">
+          <div class="flex items-center gap-2 text-rose-400 font-bold text-xs uppercase tracking-wider mb-1">
+            <i data-lucide="activity" class="w-3.5 h-3.5"></i> Medical & Dental Clinics
+          </div>
+          <p class="text-xs text-slate-300 font-semibold mt-1">Lab Results & Patient Registers</p>
+          <p class="text-[11px] text-slate-400 mt-1">Extracts Test/Marker, Measured Value, Unit, Reference Range. Speeds up clinical capture.</p>
+        </div>
+
+        <!-- Education -->
+        <div class="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-emerald-500/50 transition-colors">
+          <div class="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider mb-1">
+            <i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i> Education & Tutoring
+          </div>
+          <p class="text-xs text-slate-300 font-semibold mt-1">Attendance & Test Score Rosters</p>
+          <p class="text-[11px] text-slate-400 mt-1">Syncs Student ID, Name, Test 1, Test 2, Final Grade directly into Google Sheets or grading systems.</p>
+        </div>
+
+        <!-- Accounting Integration -->
+        <div class="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-teal-500/50 transition-colors">
+          <div class="flex items-center gap-2 text-teal-400 font-bold text-xs uppercase tracking-wider mb-1">
+            <i data-lucide="file-check" class="w-3.5 h-3.5"></i> Accounting Ready
+          </div>
+          <p class="text-xs text-slate-300 font-semibold mt-1">Sage Pastel, Xero & QuickBooks</p>
+          <p class="text-[11px] text-slate-400 mt-1">Formatted CSV templates with numeric typing, dates, and currency formatting ready for direct import.</p>
+        </div>
+
       </div>
     </div>
   </main>
@@ -103,16 +260,32 @@
     lucide.createIcons();
     const dropzone = document.getElementById('dropzone');
     const fileInput = document.getElementById('file-input');
+    const fileInfo = document.getElementById('file-info');
     const fileName = document.getElementById('file-name');
+    const form = document.getElementById('upload-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const loadingState = document.getElementById('loading-state');
 
     dropzone.addEventListener('click', () => fileInput.click());
 
-    fileInput.addEventListener('change', () => {
-      if (fileInput.files.length > 0) {
-        fileName.textContent = `Selected: ${fileInput.files[0].name} (${(fileInput.files[0].size / 1024).toFixed(1)} KB)`;
-        fileName.classList.remove('hidden');
+    function updateFileLabel() {
+      if (fileInput.files.length === 1) {
+        const f = fileInput.files[0];
+        fileName.textContent = `Selected: ${f.name} (${(f.size / 1024).toFixed(1)} KB)`;
+        fileInfo.classList.remove('hidden');
+      } else if (fileInput.files.length > 1) {
+        let totalBytes = 0;
+        for (let i = 0; i < fileInput.files.length; i++) {
+          totalBytes += fileInput.files[i].size;
+        }
+        fileName.textContent = `Selected ${fileInput.files.length} files (${(totalBytes / (1024 * 1024)).toFixed(2)} MB total)`;
+        fileInfo.classList.remove('hidden');
+      } else {
+        fileInfo.classList.add('hidden');
       }
-    });
+    }
+
+    fileInput.addEventListener('change', updateFileLabel);
 
     ['dragenter', 'dragover'].forEach(name => {
       dropzone.addEventListener(name, (e) => {
@@ -131,9 +304,13 @@
     dropzone.addEventListener('drop', (e) => {
       if (e.dataTransfer.files.length > 0) {
         fileInput.files = e.dataTransfer.files;
-        fileName.textContent = `Selected: ${fileInput.files[0].name} (${(fileInput.files[0].size / 1024).toFixed(1)} KB)`;
-        fileName.classList.remove('hidden');
+        updateFileLabel();
       }
+    });
+
+    form.addEventListener('submit', () => {
+      submitBtn.classList.add('hidden');
+      loadingState.classList.remove('hidden');
     });
   </script>
 </body>

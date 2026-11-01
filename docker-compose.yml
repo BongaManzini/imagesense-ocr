@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+  imagesense-ocr:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: imagesense-ocr:latest
+    container_name: imagesense-ocr-app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - DEFAULT_TIER=free
+      - GUNICORN_WORKERS=3
+      - GUNICORN_TIMEOUT=120
+    volumes:
+      # Persistent bind mounts for uploaded receipts and generated Excel / Accounting files
+      - ./uploads:/app/uploads
+      - ./processed:/app/processed
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2048M
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

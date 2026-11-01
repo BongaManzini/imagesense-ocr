@@ -19,8 +19,10 @@ from tkinter import ttk, filedialog, messagebox
 from typing import Optional, List, Dict, Any
 from PIL import Image, ImageTk
 
-# Import core high-accuracy OCR engine
+# Import core high-accuracy OCR engine, audit engine, and SMME schemas
 import ocr_engine
+import audit_engine
+import schema_templates
 
 
 class ImageSenseDesktopGUI(tk.Tk):
@@ -42,6 +44,8 @@ class ImageSenseDesktopGUI(tk.Tk):
         self.ocr_result: Optional[Dict[str, Any]] = None
         self.table_data: List[List[str]] = []
         self.is_processing: bool = False
+        self.detected_schema_id: str = "retail_invoice"
+        self.audit_data: Dict[str, Any] = {}
 
         # Apply dark modern slate theme
         self.setup_theme()
@@ -163,7 +167,24 @@ class ImageSenseDesktopGUI(tk.Tk):
             pady=6,
             cursor="hand2"
         )
-        open_btn.pack(side=tk.LEFT, padx=8, pady=14)
+        open_btn.pack(side=tk.LEFT, padx=6, pady=14)
+
+        # Batch Process Button
+        batch_btn = tk.Button(
+            top_frame,
+            text=" Batch Process",
+            command=self.open_batch_dialog,
+            bg="#1E293B",
+            fg="#38BDF8",
+            activebackground="#334155",
+            activeforeground="#38BDF8",
+            font=("Segoe UI", 9, "bold"),
+            bd=0,
+            padx=12,
+            pady=6,
+            cursor="hand2"
+        )
+        batch_btn.pack(side=tk.LEFT, padx=6, pady=14)
 
         # Separator
         sep1 = tk.Frame(top_frame, width=1, bg=self.colors["border"])
@@ -171,7 +192,7 @@ class ImageSenseDesktopGUI(tk.Tk):
 
         # Preprocessing Preset Selector
         preset_frame = tk.Frame(top_frame, bg=self.colors["card_bg"])
-        preset_frame.pack(side=tk.LEFT, padx=6, pady=10)
+        preset_frame.pack(side=tk.LEFT, padx=6, pady=8)
         tk.Label(preset_frame, text="Preset Mode", font=("Segoe UI", 8), bg=self.colors["card_bg"], fg=self.colors["text_muted"]).pack(anchor="w")
         
         self.preset_var = tk.StringVar(value="auto")
@@ -180,31 +201,57 @@ class ImageSenseDesktopGUI(tk.Tk):
             textvariable=self.preset_var,
             values=["auto", "invoice", "receipt", "clean_document", "raw"],
             state="readonly",
-            width=16,
+            width=12,
             font=("Segoe UI", 9)
         )
         self.preset_combo.pack()
 
-        # Deskew Checkbox
-        self.deskew_var = tk.BooleanVar(value=True)
-        deskew_cb = tk.Checkbutton(
-            top_frame,
-            text="Auto-Deskew",
-            variable=self.deskew_var,
-            bg=self.colors["card_bg"],
-            fg=self.colors["text"],
-            activebackground=self.colors["card_bg"],
-            activeforeground=self.colors["text"],
-            selectcolor=self.colors["panel_bg"],
-            font=("Segoe UI", 9),
-            bd=0
+        # Industry SMME Schema Selector
+        schema_frame = tk.Frame(top_frame, bg=self.colors["card_bg"])
+        schema_frame.pack(side=tk.LEFT, padx=6, pady=8)
+        tk.Label(schema_frame, text="Industry Schema", font=("Segoe UI", 8), bg=self.colors["card_bg"], fg=self.colors["text_muted"]).pack(anchor="w")
+
+        self.schema_var = tk.StringVar(value="auto")
+        schema_options = ["auto", "retail_invoice", "logistics_waybill", "construction_timesheet", "medical_lab", "education_grades", "manufacturing_qc", "generic_grid"]
+        self.schema_combo = ttk.Combobox(
+            schema_frame,
+            textvariable=self.schema_var,
+            values=schema_options,
+            state="readonly",
+            width=16,
+            font=("Segoe UI", 9)
         )
-        deskew_cb.pack(side=tk.LEFT, padx=8, pady=14)
+        self.schema_combo.pack()
+
+        # Preprocessing Toggles: Deskew, Perspective Flattening, Shadow Removal
+        toggles_frame = tk.Frame(top_frame, bg=self.colors["card_bg"])
+        toggles_frame.pack(side=tk.LEFT, padx=8, pady=8)
+
+        self.deskew_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(
+            toggles_frame, text="Deskew", variable=self.deskew_var,
+            bg=self.colors["card_bg"], fg=self.colors["text"], selectcolor=self.colors["panel_bg"],
+            activebackground=self.colors["card_bg"], activeforeground=self.colors["text"], font=("Segoe UI", 8), bd=0
+        ).pack(side=tk.LEFT, padx=2)
+
+        self.perspective_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(
+            toggles_frame, text="Perspective", variable=self.perspective_var,
+            bg=self.colors["card_bg"], fg=self.colors["text"], selectcolor=self.colors["panel_bg"],
+            activebackground=self.colors["card_bg"], activeforeground=self.colors["text"], font=("Segoe UI", 8), bd=0
+        ).pack(side=tk.LEFT, padx=2)
+
+        self.shadows_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(
+            toggles_frame, text="Shadow Clean", variable=self.shadows_var,
+            bg=self.colors["card_bg"], fg=self.colors["text"], selectcolor=self.colors["panel_bg"],
+            activebackground=self.colors["card_bg"], activeforeground=self.colors["text"], font=("Segoe UI", 8), bd=0
+        ).pack(side=tk.LEFT, padx=2)
 
         # Page Segmentation Mode (PSM)
         psm_frame = tk.Frame(top_frame, bg=self.colors["card_bg"])
-        psm_frame.pack(side=tk.LEFT, padx=6, pady=10)
-        tk.Label(psm_frame, text="Segmentation (PSM)", font=("Segoe UI", 8), bg=self.colors["card_bg"], fg=self.colors["text_muted"]).pack(anchor="w")
+        psm_frame.pack(side=tk.LEFT, padx=6, pady=8)
+        tk.Label(psm_frame, text="PSM", font=("Segoe UI", 8), bg=self.colors["card_bg"], fg=self.colors["text_muted"]).pack(anchor="w")
 
         self.psm_var = tk.IntVar(value=6)
         self.psm_combo = ttk.Combobox(
@@ -212,7 +259,7 @@ class ImageSenseDesktopGUI(tk.Tk):
             textvariable=self.psm_var,
             values=[6, 3, 4, 11],
             state="readonly",
-            width=6,
+            width=4,
             font=("Segoe UI", 9)
         )
         self.psm_combo.pack()
@@ -311,42 +358,69 @@ class ImageSenseDesktopGUI(tk.Tk):
         self.conf_badge = tk.Label(
             self.metric_bar,
             text="Accuracy: --",
-            font=("Segoe UI", 11, "bold"),
+            font=("Segoe UI", 10, "bold"),
             bg=self.colors["card_bg"],
             fg=self.colors["text_muted"]
         )
-        self.conf_badge.pack(side=tk.LEFT, padx=14, pady=12)
+        self.conf_badge.pack(side=tk.LEFT, padx=10, pady=12)
+
+        self.audit_badge = tk.Label(
+            self.metric_bar,
+            text="Audit: Ready",
+            font=("Segoe UI", 9, "bold"),
+            bg=self.colors["card_bg"],
+            fg=self.colors["emerald"]
+        )
+        self.audit_badge.pack(side=tk.LEFT, padx=8, pady=12)
 
         self.stats_lbl = tk.Label(
             self.metric_bar,
             text="No document analyzed yet",
-            font=("Segoe UI", 9),
+            font=("Segoe UI", 8),
             bg=self.colors["card_bg"],
             fg=self.colors["text_muted"]
         )
-        self.stats_lbl.pack(side=tk.LEFT, padx=10, pady=12)
+        self.stats_lbl.pack(side=tk.LEFT, padx=8, pady=12)
 
-        # Export Action Buttons
+        # Export Action Buttons (Excel, Sage Pastel, Xero, QuickBooks, CSV, Word)
         export_frame = tk.Frame(self.metric_bar, bg=self.colors["card_bg"])
-        export_frame.pack(side=tk.RIGHT, padx=10, pady=8)
+        export_frame.pack(side=tk.RIGHT, padx=6, pady=8)
 
         self.excel_btn = tk.Button(
-            export_frame, text=" Excel (.xlsx)", command=self.export_excel_action,
-            bg=self.colors["emerald"], fg="#FFFFFF", font=("Segoe UI", 9, "bold"), bd=0, padx=10, pady=5, cursor="hand2"
+            export_frame, text=" Excel", command=self.export_excel_action,
+            bg=self.colors["emerald"], fg="#FFFFFF", font=("Segoe UI", 8, "bold"), bd=0, padx=8, pady=4, cursor="hand2"
         )
-        self.excel_btn.pack(side=tk.LEFT, padx=4)
+        self.excel_btn.pack(side=tk.LEFT, padx=2)
+
+        self.sage_btn = tk.Button(
+            export_frame, text=" Sage", command=self.export_sage_pastel_action,
+            bg="#0284C7", fg="#FFFFFF", font=("Segoe UI", 8, "bold"), bd=0, padx=6, pady=4, cursor="hand2"
+        )
+        self.sage_btn.pack(side=tk.LEFT, padx=2)
+
+        self.xero_btn = tk.Button(
+            export_frame, text=" Xero", command=self.export_xero_action,
+            bg="#0369A1", fg="#FFFFFF", font=("Segoe UI", 8, "bold"), bd=0, padx=6, pady=4, cursor="hand2"
+        )
+        self.xero_btn.pack(side=tk.LEFT, padx=2)
+
+        self.qb_btn = tk.Button(
+            export_frame, text=" QB", command=self.export_quickbooks_action,
+            bg="#2E7D32", fg="#FFFFFF", font=("Segoe UI", 8, "bold"), bd=0, padx=6, pady=4, cursor="hand2"
+        )
+        self.qb_btn.pack(side=tk.LEFT, padx=2)
 
         self.csv_btn = tk.Button(
             export_frame, text=" CSV", command=self.export_csv_action,
-            bg="#374151", fg="#FFFFFF", font=("Segoe UI", 9), bd=0, padx=8, pady=5, cursor="hand2"
+            bg="#374151", fg="#FFFFFF", font=("Segoe UI", 8), bd=0, padx=6, pady=4, cursor="hand2"
         )
-        self.csv_btn.pack(side=tk.LEFT, padx=4)
+        self.csv_btn.pack(side=tk.LEFT, padx=2)
 
         self.docx_btn = tk.Button(
             export_frame, text=" Word", command=self.export_docx_action,
-            bg="#374151", fg="#FFFFFF", font=("Segoe UI", 9), bd=0, padx=8, pady=5, cursor="hand2"
+            bg="#374151", fg="#FFFFFF", font=("Segoe UI", 8), bd=0, padx=6, pady=4, cursor="hand2"
         )
-        self.docx_btn.pack(side=tk.LEFT, padx=4)
+        self.docx_btn.pack(side=tk.LEFT, padx=2)
 
         # Results Notebook: Table vs Raw Text
         self.notebook = ttk.Notebook(right_frame)
@@ -356,7 +430,7 @@ class ImageSenseDesktopGUI(tk.Tk):
         table_tab = tk.Frame(self.notebook, bg=self.colors["panel_bg"])
         self.notebook.add(table_tab, text="  Spreadsheet Grid  ")
 
-        # Table Control Toolbar (Add/Delete row, Copy)
+        # Table Control Toolbar (Add/Delete row, Copy, Auto-Clean, Re-verify)
         grid_toolbar = tk.Frame(table_tab, bg=self.colors["panel_bg"], height=32)
         grid_toolbar.pack(fill=tk.X, pady=4)
 
@@ -372,6 +446,16 @@ class ImageSenseDesktopGUI(tk.Tk):
 
         tk.Button(
             grid_toolbar, text=" Copy Table", command=self.copy_table_to_clipboard,
+            bg=self.colors["card_bg"], fg=self.colors["text"], font=("Segoe UI", 8), bd=0, padx=8, pady=3, cursor="hand2"
+        ).pack(side=tk.LEFT, padx=2)
+
+        tk.Button(
+            grid_toolbar, text="✨ Auto-Clean Confusions", command=self.auto_clean_confusions_action,
+            bg="#312E81", fg="#A5B4FC", font=("Segoe UI", 8, "bold"), bd=0, padx=8, pady=3, cursor="hand2"
+        ).pack(side=tk.LEFT, padx=6)
+
+        tk.Button(
+            grid_toolbar, text="🧮 Re-Verify Math", command=self.recalculate_audit_action,
             bg=self.colors["card_bg"], fg=self.colors["text"], font=("Segoe UI", 8), bd=0, padx=8, pady=3, cursor="hand2"
         ).pack(side=tk.LEFT, padx=2)
 
@@ -456,6 +540,63 @@ class ImageSenseDesktopGUI(tk.Tk):
         )
         if path:
             self.load_file(path)
+
+    def open_batch_dialog(self):
+        paths = filedialog.askopenfilenames(
+            title="Select Multiple Images or PDF Documents for Batch Processing",
+            filetypes=[
+                ("All Supported Files", "*.png;*.jpg;*.jpeg;*.webp;*.tiff;*.bmp;*.pdf"),
+                ("Images", "*.png;*.jpg;*.jpeg;*.webp;*.tiff;*.bmp"),
+                ("PDF Documents", "*.pdf")
+            ]
+        )
+        if not paths:
+            return
+
+        export_target = filedialog.asksaveasfilename(
+            title="Save Combined Master Excel Workbook",
+            defaultextension=".xlsx",
+            filetypes=[("Excel Master Workbook", "*.xlsx")]
+        )
+        if not export_target:
+            return
+
+        self.set_busy(True, f"Batch processing {len(paths)} files...")
+
+        def _batch_worker():
+            try:
+                preset = self.preset_var.get()
+                deskew = self.deskew_var.get()
+                psm = self.psm_var.get()
+
+                batch_res = ocr_engine.batch_process_files(
+                    list(paths),
+                    preset=preset,
+                    deskew=deskew,
+                    psm=psm,
+                    max_workers=4
+                )
+                ocr_engine.export_batch_to_excel(batch_res, export_target)
+                self.after(0, self._on_batch_complete, batch_res, export_target)
+            except Exception as e:
+                self.after(0, self._on_batch_error, str(e))
+
+        threading.Thread(target=_batch_worker, daemon=True).start()
+
+    def _on_batch_complete(self, batch_res: Dict[str, Any], dest: str):
+        self.set_busy(False)
+        self.set_status(f"Batch completed: {batch_res['processed_files']} files saved to {os.path.basename(dest)}")
+        messagebox.showinfo(
+            "Batch Processing Complete",
+            f"Successfully processed {batch_res['processed_files']} files ({batch_res['total_pages']} pages)\n"
+            f"Average Accuracy: {batch_res['average_confidence']}%\n"
+            f"Saved Master Excel Workbook to:\n{dest}"
+        )
+
+    def _on_batch_error(self, err: str):
+        self.set_busy(False)
+        self.set_status("Batch processing failed.")
+        messagebox.showerror("Batch Error", f"Batch processing failed:\n{err}")
 
     def load_file(self, file_path: str):
         self.current_file_path = file_path
@@ -575,6 +716,9 @@ class ImageSenseDesktopGUI(tk.Tk):
         start_time = time.time()
         preset = self.preset_var.get()
         deskew = self.deskew_var.get()
+        perspective_correct = self.perspective_var.get()
+        remove_shadows = self.shadows_var.get()
+        schema_val = self.schema_var.get()
         psm = self.psm_var.get()
 
         try:
@@ -582,6 +726,9 @@ class ImageSenseDesktopGUI(tk.Tk):
                 self.current_file_path,
                 preset=preset,
                 deskew=deskew,
+                perspective_correct=perspective_correct,
+                remove_shadows=remove_shadows,
+                schema_id=schema_val,
                 psm=psm,
                 pdf_page=self.current_page
             )
@@ -596,6 +743,8 @@ class ImageSenseDesktopGUI(tk.Tk):
         self.preprocessed_image = result["preprocessed_image"]
         self.overlay_image = result["overlay_image"]
         self.table_data = result["table_data"]
+        self.detected_schema_id = result.get("schema_id", "retail_invoice")
+        self.audit_data = result.get("audit", {})
 
         # Switch view to overlay boxes
         self.view_mode_var.set("overlay")
@@ -617,6 +766,9 @@ class ImageSenseDesktopGUI(tk.Tk):
         self.stats_lbl.configure(
             text=f"Words: {result['word_count']} | Rows: {result['row_count']} | Cols: {result['col_count']} | {elapsed:.2f}s"
         )
+
+        # Update audit status badge
+        self.update_audit_badge()
 
         # Populate Spreadsheet Treeview
         self.populate_treeview(self.table_data)
@@ -706,12 +858,100 @@ class ImageSenseDesktopGUI(tk.Tk):
         entry.bind("<Escape>", lambda e: entry.destroy())
 
     def _sync_table_data_from_tree(self):
-        """Syncs in-memory table_data with the treeview contents."""
+        """Syncs in-memory table_data with the treeview contents and recalculates audit."""
         col_names = [self.tree.heading(c)["text"] for c in self.tree["columns"]]
         rows = [col_names]
         for child in self.tree.get_children():
             rows.append(list(self.tree.item(child, "values")))
         self.table_data = rows
+
+        # Recalculate audit
+        schema_id = self.schema_var.get()
+        if schema_id == "auto":
+            schema_id = getattr(self, "detected_schema_id", "retail_invoice")
+        self.audit_data = audit_engine.audit_document_table(self.table_data, schema_id=schema_id)
+        self.update_audit_badge()
+
+    def update_audit_badge(self):
+        """Updates the top ribbon audit badge based on current audit metrics."""
+        if not self.audit_data:
+            self.audit_badge.configure(text="", bg=self.colors["card_bg"])
+            return
+
+        status = self.audit_data.get("status", "VERIFIED")
+        math_summary = self.audit_data.get("math_summary", {})
+        total_rows = math_summary.get("total_rows", 0)
+        failed_rows = math_summary.get("failed", 0)
+
+        if total_rows > 0:
+            if failed_rows == 0:
+                badge_text = f"✓ Math Verified ({math_summary.get('passed', 0)}/{total_rows} Rows)"
+                badge_color = self.colors["emerald"]
+            else:
+                badge_text = f"⚠ Math Mismatch ({failed_rows} Alert{'s' if failed_rows > 1 else ''})"
+                badge_color = self.colors["rose"]
+        else:
+            if status == "VERIFIED":
+                badge_text = "✓ Schema Verified"
+                badge_color = self.colors["emerald"]
+            elif status == "WARNINGS":
+                badge_text = "⚠ Audit Warnings"
+                badge_color = self.colors["amber"]
+            else:
+                badge_text = "✕ Audit Flags"
+                badge_color = self.colors["rose"]
+
+        self.audit_badge.configure(text=badge_text, fg=badge_color)
+
+    def auto_clean_confusions_action(self):
+        """Auto-repairs common OCR character confusions (O vs 0, l vs 1) and standardizes dates."""
+        self._sync_table_data_from_tree()
+        if not self.table_data:
+            return
+
+        schema_id = self.schema_var.get()
+        if schema_id == "auto":
+            schema_id = getattr(self, "detected_schema_id", "retail_invoice")
+
+        initial_audit = audit_engine.audit_document_table(self.table_data, schema_id=schema_id)
+        repaired_table, changelog = audit_engine.auto_repair_table(self.table_data, initial_audit)
+
+        self.table_data = repaired_table
+        self.populate_treeview(self.table_data)
+        self.recalculate_audit_action()
+
+        if changelog:
+            sample = changelog[0]
+            messagebox.showinfo(
+                "Auto-Clean OCR Complete",
+                f"Applied {len(changelog)} character/date fixes.\n\n"
+                f"Sample fix in row {sample['row']}, col {sample['col']}:\n"
+                f"'{sample['original']}' → '{sample['repaired']}'\n({sample['reason']})"
+            )
+        else:
+            messagebox.showinfo("Auto-Clean Complete", "No character confusions or date issues detected.")
+
+    def recalculate_audit_action(self):
+        """Recalculates table audit and arithmetic verification."""
+        self._sync_table_data_from_tree()
+        if not self.table_data:
+            return
+
+        schema_id = self.schema_var.get()
+        if schema_id == "auto":
+            schema_id = getattr(self, "detected_schema_id", "retail_invoice")
+
+        self.audit_data = audit_engine.audit_document_table(self.table_data, schema_id=schema_id)
+        self.update_audit_badge()
+
+        math_summary = self.audit_data.get("math_summary", {})
+        if math_summary.get("total_rows", 0) > 0:
+            if math_summary.get("failed", 0) == 0:
+                self.set_status(f"Math check: All {math_summary['passed']} line items verified (Qty × Unit Price == Total).")
+            else:
+                self.set_status(f"Math alert: {math_summary['failed']} rows have calculation mismatches.")
+        else:
+            self.set_status(f"Audit completed: {self.audit_data.get('overall_rating', 'Checked')}.")
 
     def add_table_row(self):
         if not self.tree["columns"]:
@@ -738,7 +978,7 @@ class ImageSenseDesktopGUI(tk.Tk):
         self.set_status("Table copied to clipboard (TSV format).")
 
     # -----------------------------------------------------------------------
-    # Multi-Format Export Actions
+    # Multi-Format & Accounting Software Export Actions
     # -----------------------------------------------------------------------
     def export_excel_action(self):
         self._sync_table_data_from_tree()
@@ -758,6 +998,63 @@ class ImageSenseDesktopGUI(tk.Tk):
                 messagebox.showinfo("Export Successful", f"Saved styled Excel workbook to:\n{dest}")
             except Exception as e:
                 messagebox.showerror("Export Error", f"Could not export Excel file:\n{e}")
+
+    def export_sage_pastel_action(self):
+        self._sync_table_data_from_tree()
+        if not self.table_data:
+            messagebox.showinfo("No Data", "No table data available to export.")
+            return
+
+        dest = filedialog.asksaveasfilename(
+            title="Export to Sage Pastel Import CSV",
+            defaultextension=".csv",
+            filetypes=[("Sage Pastel CSV", "*.csv")]
+        )
+        if dest:
+            try:
+                ocr_engine.export_to_sage_pastel(self.table_data, dest)
+                self.set_status(f"Exported to Sage Pastel: {os.path.basename(dest)}")
+                messagebox.showinfo("Export Successful", f"Saved Sage Pastel CSV to:\n{dest}")
+            except Exception as e:
+                messagebox.showerror("Export Error", f"Could not export Sage Pastel file:\n{e}")
+
+    def export_xero_action(self):
+        self._sync_table_data_from_tree()
+        if not self.table_data:
+            messagebox.showinfo("No Data", "No table data available to export.")
+            return
+
+        dest = filedialog.asksaveasfilename(
+            title="Export to Xero Invoice CSV",
+            defaultextension=".csv",
+            filetypes=[("Xero CSV Template", "*.csv")]
+        )
+        if dest:
+            try:
+                ocr_engine.export_to_xero(self.table_data, dest)
+                self.set_status(f"Exported to Xero: {os.path.basename(dest)}")
+                messagebox.showinfo("Export Successful", f"Saved Xero CSV to:\n{dest}")
+            except Exception as e:
+                messagebox.showerror("Export Error", f"Could not export Xero file:\n{e}")
+
+    def export_quickbooks_action(self):
+        self._sync_table_data_from_tree()
+        if not self.table_data:
+            messagebox.showinfo("No Data", "No table data available to export.")
+            return
+
+        dest = filedialog.asksaveasfilename(
+            title="Export to QuickBooks Online CSV",
+            defaultextension=".csv",
+            filetypes=[("QuickBooks Online CSV", "*.csv")]
+        )
+        if dest:
+            try:
+                ocr_engine.export_to_quickbooks(self.table_data, dest)
+                self.set_status(f"Exported to QuickBooks: {os.path.basename(dest)}")
+                messagebox.showinfo("Export Successful", f"Saved QuickBooks Online CSV to:\n{dest}")
+            except Exception as e:
+                messagebox.showerror("Export Error", f"Could not export QuickBooks file:\n{e}")
 
     def export_csv_action(self):
         self._sync_table_data_from_tree()

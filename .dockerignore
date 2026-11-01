@@ -1,0 +1,28 @@
+# Git
+.git
+.gitignore
+
+# Python virtual environment and bytecode
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local data and cache
+uploads/*
+!uploads/.gitkeep
+processed/*
+!processed/.gitkeep
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+
+# Antigravity artifacts
+.gemini/

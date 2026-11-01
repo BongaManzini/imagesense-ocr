@@ -3,100 +3,598 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OCR Results – ImageSense</title>
+  <title>Review & Audit Station – ImageSense OCR</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    .cell-editable:focus {
+      outline: 2px solid #6366f1;
+      background-color: #1e1b4b !important;
+      color: #ffffff;
+    }
+    .zoom-container {
+      transition: transform 0.15s ease-out;
+      transform-origin: top center;
+    }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-indigo-500/20">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-indigo-500/20 font-sans">
 
   <!-- Header -->
-  <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
-    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
       <div class="flex items-center gap-3">
-        <a href="/" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25">
-          <i data-lucide="scan-text" class="w-5 h-5"></i>
+        <a href="/" class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 hover:scale-105 transition-transform">
+          <i data-lucide="scan-text" class="w-4 h-4"></i>
         </a>
         <div>
-          <h1 class="text-base font-bold text-white tracking-tight">ImageSense</h1>
-          <p class="text-xs text-slate-400 font-mono">Conversion Results</p>
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm font-bold text-white tracking-tight">ImageSense Review Station</h1>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono border border-emerald-500/30">Conversion Completed Successfully</span>
+          </div>
+          <p class="text-xs text-slate-400 font-mono truncate max-w-xs sm:max-w-md">{{ filename }}</p>
         </div>
       </div>
-      <a href="/" class="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors">
-        <i data-lucide="arrow-left" class="w-4 h-4"></i> Convert Another
-      </a>
+
+      <!-- Action Nav -->
+      <div class="flex items-center gap-2.5">
+        {% if batch_parent_id %}
+        <a href="/batch/{{ batch_parent_id }}" class="text-xs text-indigo-300 hover:text-white bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-700/60 px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all">
+          <i data-lucide="layers" class="w-3.5 h-3.5"></i> Back to Batch Overview
+        </a>
+        {% endif %}
+        <a href="/" class="text-xs text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all">
+          <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Back to Upload
+        </a>
+      </div>
     </div>
   </header>
 
   <!-- Main Container -->
-  <main class="max-w-6xl mx-auto px-6 py-10 flex-1 w-full">
-    <!-- Success Banner & Download Action -->
-    <div class="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 sm:p-8 mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full">
+
+    {% if is_batch %}
+    <!-- ================================================================= -->
+    <!-- BATCH PROCESSING SUMMARY VIEW                                     -->
+    <!-- ================================================================= -->
+    
+    <div class="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 sm:p-8 mb-8 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 shadow-2xl backdrop-blur-xl">
       <div>
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono mb-2">
-          <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-          Conversion Completed Successfully
+          <i data-lucide="check-check" class="w-3.5 h-3.5"></i>
+          Batch Processing Completed
         </div>
-        <h2 class="text-2xl font-bold text-white tracking-tight">{{ filename }}</h2>
-        <p class="text-xs text-slate-400 mt-1 font-mono">
-          Extracted {{ row_count }} rows & {{ col_count }} columns
-        </p>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Processed {{ processed_files }} of {{ total_files }} Documents</h2>
+        
+        <div class="flex flex-wrap items-center gap-4 mt-3 text-xs font-mono text-slate-400">
+          <span class="flex items-center gap-1.5 text-slate-300">
+            <i data-lucide="award" class="w-4 h-4 text-emerald-400"></i>
+            Avg. Accuracy: <strong class="text-emerald-400">{{ average_confidence }}%</strong>
+          </span>
+          <span class="text-slate-600">•</span>
+          <span>Total Pages: <strong class="text-white">{{ total_pages }}</strong></span>
+          <span class="text-slate-600">•</span>
+          <span>Elapsed Time: <strong class="text-cyan-400">{{ elapsed_seconds }}s</strong></span>
+        </div>
       </div>
 
-      <div class="flex items-center gap-3 w-full sm:w-auto">
+      <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
         <a 
-          href="/download/{{ excel_filename }}" 
-          class="flex-1 sm:flex-initial py-3 px-6 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-sm shadow-xl shadow-emerald-500/25 flex items-center justify-center gap-2 transition-all"
+          href="/download/{{ combined_excel }}" 
+          class="flex-1 sm:flex-initial py-3 px-5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-bold text-xs sm:text-sm shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
         >
-          <i data-lucide="download" class="w-4 h-4"></i>
-          Download Excel (.xlsx)
+          <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+          Download Master Excel (.xlsx)
+        </a>
+        <a 
+          href="/download/{{ batch_zip }}" 
+          class="flex-1 sm:flex-initial py-3 px-5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs sm:text-sm border border-slate-700 flex items-center justify-center gap-2 transition-all cursor-pointer"
+        >
+          <i data-lucide="archive" class="w-4 h-4"></i>
+          Download All as ZIP (.zip)
         </a>
       </div>
     </div>
 
-    <!-- Data Preview Table -->
-    <div class="bg-slate-900/50 border border-slate-800 rounded-3xl p-6 overflow-hidden">
-      <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-        <h3 class="text-sm font-bold text-white flex items-center gap-2">
-          <i data-lucide="table-2" class="w-4 h-4 text-cyan-400"></i>
-          Extracted Spreadsheet Preview
-        </h3>
-        <span class="text-xs font-mono text-slate-400">Live preview</span>
+    <!-- Errors (if any) -->
+    {% if errors and errors|length > 0 %}
+    <div class="mb-8 p-5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-mono space-y-1">
+      <h4 class="font-bold flex items-center gap-2 text-rose-400 mb-2">
+        <i data-lucide="alert-circle" class="w-4 h-4"></i> Errors encountered on some files:
+      </h4>
+      {% for err in errors %}
+        <p>• <strong>{{ err.file }}:</strong> {{ err.error }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Processed Batch Document Cards -->
+    <div class="space-y-4">
+      <h3 class="text-base font-bold text-white flex items-center gap-2">
+        <i data-lucide="layers" class="w-4 h-4 text-indigo-400"></i>
+        Extracted Documents ({{ file_items|length }})
+      </h3>
+
+      {% for item in file_items %}
+      <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition-colors">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+          <div>
+            <div class="flex items-center gap-2.5">
+              <span class="w-2.5 h-2.5 rounded-full {% if item.confidence >= 80 %}bg-emerald-400{% elif item.confidence >= 60 %}bg-amber-400{% else %}bg-rose-400{% endif %}"></span>
+              <h4 class="text-sm font-bold text-white font-mono">{{ item.filename }}</h4>
+              <span class="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 font-mono text-cyan-300">
+                {{ item.confidence }}% Accuracy
+              </span>
+              {% if item.audit and item.audit.math_summary and item.audit.math_summary.total_rows > 0 %}
+                {% if item.audit.math_summary.failed == 0 %}
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono border border-emerald-500/30">
+                  Math: {{ item.audit.math_summary.passed }}/{{ item.audit.math_summary.total_rows }} Passed
+                </span>
+                {% else %}
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 font-mono border border-rose-500/30">
+                  Math Mismatch: {{ item.audit.math_summary.failed }} Alert
+                </span>
+                {% endif %}
+              {% endif %}
+            </div>
+            <p class="text-xs text-slate-400 mt-1 font-mono">
+              {{ item.row_count }} rows • {{ item.col_count }} columns {% if item.pages > 1 %}• {{ item.pages }} pages{% endif %}
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            {% if item.index is defined %}
+            <a 
+              href="/batch/{{ batch_id }}/review/{{ item.index }}" 
+              class="py-1.5 px-3 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-xs font-mono text-indigo-300 flex items-center gap-1.5 transition-all shadow-sm"
+            >
+              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Review & Edit Station
+            </a>
+            {% endif %}
+            <a 
+              href="/download/{{ item.excel_filename }}" 
+              class="py-1.5 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-xs font-mono text-emerald-300 flex items-center gap-1.5 transition-all"
+            >
+              <i data-lucide="download" class="w-3.5 h-3.5"></i> Excel
+            </a>
+            {% if item.sage_filename %}
+            <a 
+              href="/download/{{ item.sage_filename }}" 
+              class="py-1.5 px-2.5 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-xs font-mono text-sky-300 flex items-center gap-1 transition-all"
+              title="Sage Pastel CSV"
+            >
+              Sage
+            </a>
+            {% endif %}
+            {% if item.xero_filename %}
+            <a 
+              href="/download/{{ item.xero_filename }}" 
+              class="py-1.5 px-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-xs font-mono text-cyan-300 flex items-center gap-1 transition-all"
+              title="Xero Invoice CSV"
+            >
+              Xero
+            </a>
+            {% endif %}
+            {% if item.qb_filename %}
+            <a 
+              href="/download/{{ item.qb_filename }}" 
+              class="py-1.5 px-2.5 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 text-xs font-mono text-teal-300 flex items-center gap-1 transition-all"
+              title="QuickBooks Online CSV"
+            >
+              QB
+            </a>
+            {% endif %}
+          </div>
+        </div>
+
+        <details class="mt-3">
+          <summary class="text-xs font-mono text-slate-400 hover:text-white cursor-pointer select-none flex items-center gap-1.5 py-1">
+            <i data-lucide="table" class="w-3.5 h-3.5 text-indigo-400"></i>
+            Preview Extracted Data Table
+          </summary>
+          <div class="overflow-x-auto mt-3 max-h-60 rounded-xl border border-slate-800">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                {% if item.table_data and item.table_data|length > 0 %}
+                <tr class="bg-slate-800/80 text-white font-mono uppercase text-[11px]">
+                  {% for cell in item.table_data[0] %}
+                  <th class="p-2.5 border border-slate-700/80">{{ cell }}</th>
+                  {% endfor %}
+                </tr>
+                {% endif %}
+              </thead>
+              <tbody class="divide-y divide-slate-800/80">
+                {% for row in item.table_data[1:6] %}
+                <tr class="hover:bg-slate-800/30">
+                  {% for cell in row %}
+                  <td class="p-2.5 border border-slate-800 font-mono text-slate-300">{{ cell }}</td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <!-- ================================================================= -->
+    <!-- DUAL-PANE SIDE-BY-SIDE HUMAN-IN-THE-LOOP REVIEW STATION           -->
+    <!-- ================================================================= -->
+
+    <!-- Top Audit & Command Ribbon -->
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 mb-6 shadow-xl backdrop-blur-md flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- Left: Audit Pill & Score -->
+      <div class="flex flex-wrap items-center gap-3">
+        <div id="audit-badge" class="px-3 py-1.5 rounded-xl font-mono text-xs font-bold flex items-center gap-2 border 
+          {% if audit.status == 'VERIFIED' %}
+            bg-emerald-500/10 border-emerald-500/30 text-emerald-400
+          {% elif audit.status == 'WARNINGS' %}
+            bg-amber-500/10 border-amber-500/30 text-amber-400
+          {% else %}
+            bg-rose-500/10 border-rose-500/30 text-rose-400
+          {% endif %}
+        ">
+          <span class="w-2 h-2 rounded-full 
+            {% if audit.status == 'VERIFIED' %}bg-emerald-400{% elif audit.status == 'WARNINGS' %}bg-amber-400{% else %}bg-rose-400{% endif %}
+          "></span>
+          <span id="audit-badge-text">{{ audit.overall_rating or "Audit Checked" }}</span>
+        </div>
+
+        <span class="text-xs font-mono text-slate-400">
+          Accuracy: <strong class="text-cyan-400 font-bold">{{ confidence }}%</strong>
+        </span>
+
+        <span class="text-slate-600 hidden sm:inline">•</span>
+
+        <!-- Industry Schema Selector -->
+        <div class="flex items-center gap-1.5">
+          <label class="text-xs text-slate-400 font-mono">Schema:</label>
+          <select 
+            id="schema-selector" 
+            class="bg-slate-800 border border-slate-700 text-xs text-slate-200 rounded-lg px-2 py-1 font-mono focus:outline-none focus:border-indigo-500"
+            onchange="recalculateAudit()"
+          >
+            {% for s_id, s_data in schemas.items() %}
+              <option value="{{ s_id }}" {% if s_id == schema_id %}selected{% endif %}>{{ s_data.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
       </div>
 
-      <div class="overflow-x-auto mt-4 max-h-[500px]">
-        <table class="w-full text-left text-xs border-collapse">
-          <thead>
-            {% if table_data and table_data|length > 0 %}
-            <tr class="bg-slate-800/80 text-white font-mono uppercase text-[11px] tracking-wider">
-              {% for cell in table_data[0] %}
-              <th class="p-3 border border-slate-700/80">{{ cell }}</th>
-              {% endfor %}
-            </tr>
+      <!-- Right: Action Buttons -->
+      <div class="flex flex-wrap items-center gap-2">
+        <button 
+          type="button" 
+          onclick="openLlmRefineModal()" 
+          class="py-1.5 px-3 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 text-xs font-mono flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+          title="Uses AI Vision / LLM post-processing to reconcile numeric errors and align schema"
+        >
+          <i data-lucide="wand-2" class="w-3.5 h-3.5"></i> AI Hybrid Refine
+        </button>
+
+        <button 
+          type="button" 
+          onclick="autoRepairHallucinations()" 
+          class="py-1.5 px-3 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 text-xs font-mono flex items-center gap-1.5 transition-all cursor-pointer"
+          title="Auto-fixes letter O vs 0 in numbers and standardizes dates"
+        >
+          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Auto-Clean OCR Confusions
+        </button>
+
+        <button 
+          type="button" 
+          onclick="recalculateAudit()" 
+          class="py-1.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-mono flex items-center gap-1.5 transition-all cursor-pointer"
+        >
+          <i data-lucide="calculator" class="w-3.5 h-3.5"></i> Re-Verify Math
+        </button>
+
+        <!-- Save & Export Dropdown -->
+        <div class="relative inline-block text-left" id="export-dropdown-wrapper">
+          <button 
+            type="button" 
+            onclick="toggleExportMenu()" 
+            class="py-2 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-bold text-xs font-mono shadow-lg shadow-emerald-500/20 flex items-center gap-2 transition-all cursor-pointer"
+          >
+            <i data-lucide="download" class="w-4 h-4"></i> Export Verified Data <i data-lucide="chevron-down" class="w-3 h-3"></i>
+          </button>
+
+          <!-- Dropdown Menu -->
+          <div 
+            id="export-menu" 
+            class="hidden absolute right-0 mt-2 w-64 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl z-50 p-2 space-y-1 font-mono text-xs"
+          >
+            <div class="px-3 py-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Accounting Packages</div>
+            <a id="btn-dl-excel" href="/download/{{ excel_filename }}" class="flex items-center justify-between px-3 py-2 rounded-xl text-emerald-300 hover:bg-emerald-500/10 transition-colors">
+              <span class="flex items-center gap-2"><i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i> Excel (.xlsx) Formatted</span>
+              <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">Formulas</span>
+            </a>
+            <a id="btn-dl-sage" href="/download/{{ sage_filename }}" class="flex items-center justify-between px-3 py-2 rounded-xl text-slate-200 hover:bg-slate-800 transition-colors">
+              <span class="flex items-center gap-2"><i data-lucide="file-check" class="w-3.5 h-3.5 text-teal-400"></i> Sage Pastel CSV</span>
+              <span class="text-[10px] text-slate-400">Pastel/Cloud</span>
+            </a>
+            <a id="btn-dl-xero" href="/download/{{ xero_filename }}" class="flex items-center justify-between px-3 py-2 rounded-xl text-slate-200 hover:bg-slate-800 transition-colors">
+              <span class="flex items-center gap-2"><i data-lucide="file-check" class="w-3.5 h-3.5 text-cyan-400"></i> Xero Bills CSV</span>
+              <span class="text-[10px] text-slate-400">Direct Import</span>
+            </a>
+            <a id="btn-dl-qb" href="/download/{{ qb_filename }}" class="flex items-center justify-between px-3 py-2 rounded-xl text-slate-200 hover:bg-slate-800 transition-colors">
+              <span class="flex items-center gap-2"><i data-lucide="file-check" class="w-3.5 h-3.5 text-emerald-400"></i> QuickBooks CSV</span>
+              <span class="text-[10px] text-slate-400">Online</span>
+            </a>
+
+            <div class="border-t border-slate-800 my-1"></div>
+            <div class="px-3 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Standard Formats</div>
+            <a id="btn-dl-csv" href="/download/{{ csv_filename }}" class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-slate-300 hover:bg-slate-800 transition-colors">
+              <i data-lucide="file-text" class="w-3.5 h-3.5"></i> Standard CSV
+            </a>
+            {% if docx_filename %}
+            <a id="btn-dl-docx" href="/download/{{ docx_filename }}" class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-slate-300 hover:bg-slate-800 transition-colors">
+              <i data-lucide="file" class="w-3.5 h-3.5"></i> Word Document (.docx)
+            </a>
             {% endif %}
-          </thead>
-          <tbody class="divide-y divide-slate-800">
-            {% for row in table_data[1:] %}
-            <tr class="hover:bg-slate-800/40 transition-colors">
-              {% for cell in row %}
-              <td class="p-3 border border-slate-800 font-mono text-slate-300">{{ cell }}</td>
-              {% endfor %}
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+            <a id="btn-dl-json" href="/download/{{ json_filename }}" class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-slate-300 hover:bg-slate-800 transition-colors">
+              <i data-lucide="code" class="w-3.5 h-3.5"></i> Structured JSON
+            </a>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Raw OCR Text Card -->
-    <div class="mt-8 bg-slate-900/30 border border-slate-800/80 rounded-2xl p-5">
+    <!-- Arithmetic Audit Alert Banner (If Any Warnings/Mismatches) -->
+    <div id="audit-details-banner" class="mb-6 p-4 rounded-2xl border text-xs font-mono transition-all
+      {% if audit.status == 'NEEDS_REVIEW' %}
+        bg-rose-500/10 border-rose-500/30 text-rose-300
+      {% elif audit.status == 'WARNINGS' %}
+        bg-amber-500/10 border-amber-500/30 text-amber-300
+      {% else %}
+        bg-emerald-500/10 border-emerald-500/20 text-emerald-300
+      {% endif %}
+    ">
+      <div class="flex items-start justify-between gap-4">
+        <div class="space-y-1">
+          <p class="font-bold flex items-center gap-2 text-white">
+            <i data-lucide="shield-check" class="w-4 h-4 text-cyan-400"></i>
+            <span id="audit-summary-heading">{{ audit.summary_text }}</span>
+          </p>
+
+          <!-- List of specific line math checks -->
+          <div id="math-checks-list" class="space-y-1 mt-2 text-[11px]">
+            {% for mc in audit.math_checks %}
+              <div class="flex items-center gap-2">
+                {% if mc.passed %}
+                <span class="text-emerald-400 font-bold">✓ Row {{ mc.row_index + 1 }}:</span>
+                <span class="text-slate-300">{{ mc.expression }}</span>
+                {% else %}
+                <span class="text-rose-400 font-bold">✗ Row {{ mc.row_index + 1 }}:</span>
+                <span class="text-rose-200">{{ mc.expression }} — <span class="underline">Difference: {{ mc.difference }}</span></span>
+                <button 
+                  type="button" 
+                  onclick="applySuggestedFix({{ mc.row_index }}, {{ mc.total_col }}, '{{ mc.expected_total }}')" 
+                  class="ml-2 px-2 py-0.5 rounded bg-rose-500/20 hover:bg-rose-500/40 text-rose-200 border border-rose-500/40 cursor-pointer"
+                >
+                  Apply Fix ({{ mc.expected_total }})
+                </button>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="text-[11px] text-right font-mono text-slate-400 hidden sm:block">
+          <span class="block">Cells with <span class="text-amber-400">yellow</span> or <span class="text-rose-400">red</span> indicate uncertain OCR or calculation check.</span>
+          <span class="block text-slate-500">Edit cells directly in the table.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- DUAL PANE GRID: Left = Document Visualizer | Right = Spreadsheet Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- =============================================================== -->
+      <!-- LEFT PANE: Document Visualizer (5 Cols)                         -->
+      <!-- =============================================================== -->
+      <div class="lg:col-span-5 flex flex-col bg-slate-900/60 border border-slate-800 rounded-3xl p-5 shadow-2xl backdrop-blur-xl">
+        
+        <!-- Document Viewer Toolbar -->
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
+          <div class="flex items-center gap-1.5">
+            <i data-lucide="image" class="w-4 h-4 text-indigo-400"></i>
+            <span class="text-xs font-bold text-white uppercase tracking-wider">Document Visualizer</span>
+          </div>
+
+          <!-- View Switcher -->
+          <div class="flex items-center bg-slate-800/80 p-0.5 rounded-xl border border-slate-700 text-[11px] font-mono">
+            <button 
+              type="button" 
+              id="view-overlay-btn" 
+              onclick="switchImageView('overlay')" 
+              class="px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-medium transition-all"
+            >
+              Boxes
+            </button>
+            <button 
+              type="button" 
+              id="view-prep-btn" 
+              onclick="switchImageView('prep')" 
+              class="px-2.5 py-1 rounded-lg text-slate-300 hover:text-white transition-all"
+            >
+              Clean
+            </button>
+            <button 
+              type="button" 
+              id="view-orig-btn" 
+              onclick="switchImageView('orig')" 
+              class="px-2.5 py-1 rounded-lg text-slate-300 hover:text-white transition-all"
+            >
+              Original
+            </button>
+          </div>
+        </div>
+
+        <!-- Zoom Control Bar -->
+        <div class="flex items-center justify-between py-1.5 px-3 bg-slate-950/60 border border-slate-800 rounded-xl mb-3 text-xs font-mono text-slate-400">
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="zoomImage(0.15)" class="hover:text-white px-1.5 py-0.5 bg-slate-800 rounded cursor-pointer" title="Zoom in">+</button>
+            <button type="button" onclick="zoomImage(-0.15)" class="hover:text-white px-1.5 py-0.5 bg-slate-800 rounded cursor-pointer" title="Zoom out">−</button>
+            <button type="button" onclick="resetZoom()" class="hover:text-white px-2 py-0.5 bg-slate-800 rounded cursor-pointer text-[10px]">Reset</button>
+          </div>
+          <span id="zoom-level-lbl">Zoom: 100%</span>
+        </div>
+
+        <!-- Scrollable Image Canvas -->
+        <div class="overflow-auto max-h-[620px] rounded-2xl border border-slate-800/80 bg-slate-950/80 flex items-center justify-center p-2 min-h-[400px]">
+          <div id="image-zoom-target" class="zoom-container">
+            <img 
+              id="doc-preview-img" 
+              src="/preview/{{ overlay_preview }}" 
+              alt="Document Preview" 
+              class="max-w-full rounded-lg shadow-2xl object-contain mx-auto"
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- =============================================================== -->
+      <!-- RIGHT PANE: Interactive Spreadsheet Grid (7 Cols)              -->
+      <!-- =============================================================== -->
+      <div class="lg:col-span-7 flex flex-col bg-slate-900/60 border border-slate-800 rounded-3xl p-5 shadow-2xl backdrop-blur-xl">
+        
+        <!-- Table Toolbar -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800 mb-3">
+          <div class="flex items-center gap-2">
+            <i data-lucide="table-2" class="w-4 h-4 text-cyan-400"></i>
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Spreadsheet Grid Editor</h3>
+            <span class="text-[10px] text-slate-400 font-mono">({{ row_count }} rows × {{ col_count }} cols)</span>
+          </div>
+
+          <!-- Table Manipulation Buttons -->
+          <div class="flex items-center gap-1.5 text-xs font-mono">
+            <button 
+              type="button" 
+              onclick="addTableRow()" 
+              class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1 cursor-pointer"
+            >
+              <i data-lucide="plus" class="w-3 h-3"></i> Row
+            </button>
+            <button 
+              type="button" 
+              onclick="deleteSelectedRow()" 
+              class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1 cursor-pointer"
+            >
+              <i data-lucide="trash-2" class="w-3 h-3 text-rose-400"></i> Delete
+            </button>
+            <button 
+              type="button" 
+              onclick="copyTableToClipboard()" 
+              class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1 cursor-pointer"
+            >
+              <i data-lucide="copy" class="w-3 h-3"></i> Copy
+            </button>
+          </div>
+        </div>
+
+        <!-- Editable Grid Container -->
+        <div class="overflow-x-auto max-h-[580px] rounded-2xl border border-slate-800 bg-slate-950/90">
+          <table id="spreadsheet-table" class="w-full text-left text-xs border-collapse">
+            <thead>
+              {% if table_data and table_data|length > 0 %}
+              <tr class="bg-slate-800/90 text-white font-mono uppercase text-[11px] tracking-wider sticky top-0 z-10">
+                <th class="p-2 border border-slate-700/80 w-10 text-center text-slate-400">#</th>
+                {% for col_idx in range(table_data[0]|length) %}
+                <th class="p-2.5 border border-slate-700/80">
+                  <div class="flex items-center justify-between gap-1">
+                    <span 
+                      contenteditable="true" 
+                      class="cell-editable font-bold text-white focus:outline-none px-1 rounded" 
+                      data-row="0" 
+                      data-col="{{ col_idx }}"
+                    >
+                      {{ table_data[0][col_idx] if table_data[0][col_idx] else ("Column " ~ (col_idx + 1)) }}
+                    </span>
+                  </div>
+                </th>
+                {% endfor %}
+              </tr>
+              {% endif %}
+            </thead>
+            <tbody id="spreadsheet-body" class="divide-y divide-slate-800/80">
+              {% for row_idx in range(1, table_data|length) %}
+              <tr class="hover:bg-slate-800/30 transition-colors group" data-row-idx="{{ row_idx }}">
+                <td class="p-2 border border-slate-800 font-mono text-[11px] text-center text-slate-500 bg-slate-900/40 select-none">
+                  {{ row_idx }}
+                </td>
+                {% for col_idx in range(table_data[row_idx]|length) %}
+                  {% set cell_val = table_data[row_idx][col_idx] %}
+                  {% set coord_key = row_idx ~ "_" ~ col_idx %}
+                  {% set cell_conf = cell_confidences.get(coord_key, 100.0) %}
+                  
+                  {# Determine cell audit status #}
+                  {% set is_math_error = False %}
+                  {% set is_low_conf = False %}
+                  {% for fc in audit.flagged_cells %}
+                    {% if fc.row == row_idx and fc.col == col_idx %}
+                      {% if fc.type == 'math_mismatch' %}
+                        {% set is_math_error = True %}
+                      {% elif fc.type == 'low_confidence' %}
+                        {% set is_low_conf = True %}
+                      {% endif %}
+                    {% endif %}
+                  {% endfor %}
+
+                  <td 
+                    class="p-2 border border-slate-800 font-mono text-slate-200 relative 
+                      {% if is_math_error %}
+                        bg-rose-500/20 text-rose-200 border-rose-500/40 font-bold
+                      {% elif is_low_conf or (cell_conf < 70 and cell_val) %}
+                        bg-amber-500/15 text-amber-200 border-amber-500/40
+                      {% endif %}
+                    "
+                    title="{% if is_math_error %}Calculation Mismatch{% elif is_low_conf or cell_conf < 70 %}OCR Confidence: {{ cell_conf }}%{% endif %}"
+                  >
+                    <div 
+                      contenteditable="true" 
+                      class="cell-editable px-1 py-0.5 rounded focus:outline-none min-h-[1.5rem]" 
+                      data-row="{{ row_idx }}" 
+                      data-col="{{ col_idx }}"
+                      onblur="onCellEdited(this)"
+                    >{{ cell_val }}</div>
+                  </td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Bottom Guidance Strip -->
+        <div class="mt-4 flex flex-wrap items-center justify-between text-[11px] font-mono text-slate-400 pt-2 border-t border-slate-800">
+          <div class="flex items-center gap-3">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-amber-400/40 border border-amber-400"></span> Low Confidence (&lt;70%)</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-rose-400/40 border border-rose-400"></span> Math Mismatch</span>
+          </div>
+          <span class="text-slate-500">Click any cell to edit. Re-export updates all files instantly.</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Raw OCR Text Drawer -->
+    <div class="mt-8 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4">
       <details>
         <summary class="text-xs font-mono text-slate-400 hover:text-white cursor-pointer select-none flex items-center gap-2">
-          <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
-          View Raw OCR Text Output
+          <i data-lucide="terminal" class="w-3.5 h-3.5 text-indigo-400"></i>
+          View Raw Neural OCR Text
         </summary>
         <pre class="mt-4 p-4 rounded-xl bg-slate-950 font-mono text-xs text-slate-400 overflow-x-auto whitespace-pre-wrap">{{ raw_text }}</pre>
       </details>
     </div>
+
+    {% endif %}
+
   </main>
 
   <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500 font-mono">
@@ -105,6 +603,424 @@
 
   <script>
     lucide.createIcons();
+
+    // Image Zoom & Mode state
+    let currentZoom = 1.0;
+    const zoomTarget = document.getElementById('image-zoom-target');
+    const zoomLbl = document.getElementById('zoom-level-lbl');
+    const previewImg = document.getElementById('doc-preview-img');
+
+    const origUrl = "/preview/{{ orig_preview }}";
+    const prepUrl = "/preview/{{ prep_preview }}";
+    const overlayUrl = "/preview/{{ overlay_preview }}";
+
+    function zoomImage(delta) {
+      currentZoom = Math.max(0.5, Math.min(currentZoom + delta, 3.0));
+      if (zoomTarget) {
+        zoomTarget.style.transform = `scale(${currentZoom})`;
+      }
+      if (zoomLbl) {
+        zoomLbl.textContent = `Zoom: ${Math.round(currentZoom * 100)}%`;
+      }
+    }
+
+    function resetZoom() {
+      currentZoom = 1.0;
+      if (zoomTarget) zoomTarget.style.transform = "scale(1)";
+      if (zoomLbl) zoomLbl.textContent = "Zoom: 100%";
+    }
+
+    function switchImageView(mode) {
+      const btnOverlay = document.getElementById('view-overlay-btn');
+      const btnPrep = document.getElementById('view-prep-btn');
+      const btnOrig = document.getElementById('view-orig-btn');
+
+      [btnOverlay, btnPrep, btnOrig].forEach(b => {
+        if (b) {
+          b.classList.remove('bg-indigo-600', 'text-white');
+          b.classList.add('text-slate-300');
+        }
+      });
+
+      if (mode === 'overlay') {
+        if (previewImg) previewImg.src = overlayUrl;
+        if (btnOverlay) {
+          btnOverlay.classList.add('bg-indigo-600', 'text-white');
+          btnOverlay.classList.remove('text-slate-300');
+        }
+      } else if (mode === 'prep') {
+        if (previewImg) previewImg.src = prepUrl;
+        if (btnPrep) {
+          btnPrep.classList.add('bg-indigo-600', 'text-white');
+          btnPrep.classList.remove('text-slate-300');
+        }
+      } else {
+        if (previewImg) previewImg.src = origUrl;
+        if (btnOrig) {
+          btnOrig.classList.add('bg-indigo-600', 'text-white');
+          btnOrig.classList.remove('text-slate-300');
+        }
+      }
+    }
+
+    // Toggle Export Dropdown
+    function toggleExportMenu() {
+      const menu = document.getElementById('export-menu');
+      if (menu) menu.classList.toggle('hidden');
+    }
+
+    document.addEventListener('click', (e) => {
+      const wrapper = document.getElementById('export-dropdown-wrapper');
+      const menu = document.getElementById('export-menu');
+      if (wrapper && menu && !wrapper.contains(e.target)) {
+        menu.classList.add('hidden');
+      }
+    });
+
+    // Helper: Collect table data matrix from DOM
+    function getTableDataFromDOM() {
+      const table = document.getElementById('spreadsheet-table');
+      if (!table) return [];
+      const rows = [];
+      const trs = table.querySelectorAll('tr');
+      trs.forEach(tr => {
+        const rowVals = [];
+        const cells = tr.querySelectorAll('.cell-editable');
+        cells.forEach(c => rowVals.push(c.innerText.trim()));
+        if (rowVals.length > 0) rows.push(rowVals);
+      });
+      return rows;
+    }
+
+    // Called whenever any cell is edited
+    async function onCellEdited(cellElem) {
+      // Clear error colors on the edited cell's parent td
+      const td = cellElem.closest('td');
+      if (td) {
+        td.classList.remove('bg-rose-500/20', 'bg-amber-500/15', 'border-rose-500/40', 'border-amber-500/40');
+      }
+
+      // Automatically re-sync and re-export in background
+      await saveAndReExport();
+    }
+
+    // Auto-Repair character confusions via API
+    async function autoRepairHallucinations() {
+      const tableData = getTableDataFromDOM();
+      const schemaSelector = document.getElementById('schema-selector');
+      const schemaId = schemaSelector ? schemaSelector.value : "retail_invoice";
+
+      try {
+        const res = await fetch("/api/auto_repair", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ table_data: tableData, schema_id: schemaId })
+        });
+        const data = await res.json();
+        if (data.success && data.repaired_table) {
+          renderTableData(data.repaired_table, data.audit);
+          await saveAndReExport();
+        }
+      } catch (err) {
+        console.error("Auto-repair error:", err);
+      }
+    }
+
+    // Apply suggested fix from equation check
+    async function applySuggestedFix(rowIdx, colIdx, fixedVal) {
+      const table = document.getElementById('spreadsheet-table');
+      if (!table) return;
+      const targetCell = table.querySelector(`.cell-editable[data-row="${rowIdx}"][data-col="${colIdx}"]`);
+      if (targetCell) {
+        targetCell.innerText = fixedVal;
+        await onCellEdited(targetCell);
+      }
+    }
+
+    // Recalculate Audit via API
+    async function recalculateAudit() {
+      const tableData = getTableDataFromDOM();
+      const schemaSelector = document.getElementById('schema-selector');
+      const schemaId = schemaSelector ? schemaSelector.value : "retail_invoice";
+
+      try {
+        const res = await fetch("/api/audit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ table_data: tableData, schema_id: schemaId })
+        });
+        const data = await res.json();
+        if (data.success && data.audit) {
+          updateAuditUI(data.audit);
+        }
+      } catch (err) {
+        console.error("Audit error:", err);
+      }
+    }
+
+    // Save and re-export updated downloads
+    async function saveAndReExport() {
+      const tableData = getTableDataFromDOM();
+      const schemaSelector = document.getElementById('schema-selector');
+      const schemaId = schemaSelector ? schemaSelector.value : "retail_invoice";
+      const batchId = "{{ batch_id }}";
+
+      try {
+        const res = await fetch("/api/save_and_export", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            table_data: tableData,
+            schema_id: schemaId,
+            batch_id: batchId,
+            filename: "{{ filename }}"
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          updateAuditUI(data.audit);
+          // Update download links
+          if (data.files) {
+            document.getElementById('btn-dl-excel').href = `/download/${data.files.excel}`;
+            document.getElementById('btn-dl-sage').href = `/download/${data.files.sage}`;
+            document.getElementById('btn-dl-xero').href = `/download/${data.files.xero}`;
+            document.getElementById('btn-dl-qb').href = `/download/${data.files.qb}`;
+            document.getElementById('btn-dl-csv').href = `/download/${data.files.csv}`;
+            document.getElementById('btn-dl-json').href = `/download/${data.files.json}`;
+          }
+        }
+      } catch (err) {
+        console.error("Save & export error:", err);
+      }
+    }
+
+    // Update Audit Banner UI
+    function updateAuditUI(audit) {
+      const badge = document.getElementById('audit-badge');
+      const badgeText = document.getElementById('audit-badge-text');
+      const summaryH = document.getElementById('audit-summary-heading');
+      const banner = document.getElementById('audit-details-banner');
+      const mathList = document.getElementById('math-checks-list');
+
+      if (badgeText) badgeText.textContent = audit.overall_rating || "Audit Checked";
+      if (summaryH) summaryH.textContent = audit.summary_text || "";
+
+      // Update badge color classes
+      if (badge && banner) {
+        badge.className = "px-3 py-1.5 rounded-xl font-mono text-xs font-bold flex items-center gap-2 border ";
+        banner.className = "mb-6 p-4 rounded-2xl border text-xs font-mono transition-all ";
+
+        if (audit.status === 'VERIFIED') {
+          badge.classList.add('bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-400');
+          banner.classList.add('bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-300');
+        } else if (audit.status === 'WARNINGS') {
+          badge.classList.add('bg-amber-500/10', 'border-amber-500/30', 'text-amber-400');
+          banner.classList.add('bg-amber-500/10', 'border-amber-500/30', 'text-amber-300');
+        } else {
+          badge.classList.add('bg-rose-500/10', 'border-rose-500/30', 'text-rose-400');
+          banner.classList.add('bg-rose-500/10', 'border-rose-500/30', 'text-rose-300');
+        }
+      }
+
+      // Rebuild math list HTML
+      if (mathList && audit.math_checks) {
+        let html = "";
+        audit.math_checks.forEach(mc => {
+          if (mc.passed) {
+            html += `<div class="flex items-center gap-2">
+              <span class="text-emerald-400 font-bold">✓ Row ${mc.row_index + 1}:</span>
+              <span class="text-slate-300">${mc.expression}</span>
+            </div>`;
+          } else {
+            html += `<div class="flex items-center gap-2">
+              <span class="text-rose-400 font-bold">✗ Row ${mc.row_index + 1}:</span>
+              <span class="text-rose-200">${mc.expression} — <span class="underline">Diff: ${mc.difference}</span></span>
+              <button 
+                type="button" 
+                onclick="applySuggestedFix(${mc.row_index}, ${mc.total_col}, '${mc.expected_total}')" 
+                class="ml-2 px-2 py-0.5 rounded bg-rose-500/20 hover:bg-rose-500/40 text-rose-200 border border-rose-500/40 cursor-pointer"
+              >
+                Apply Fix (${mc.expected_total})
+              </button>
+            </div>`;
+          }
+        });
+        mathList.innerHTML = html;
+      }
+    }
+
+    // Re-render table cells
+    function renderTableData(tableData, audit) {
+      if (!tableData || tableData.length === 0) return;
+      const tbody = document.getElementById('spreadsheet-body');
+      if (!tbody) return;
+
+      let html = "";
+      for (let r = 1; r < tableData.length; r++) {
+        html += `<tr class="hover:bg-slate-800/30 transition-colors group" data-row-idx="${r}">
+          <td class="p-2 border border-slate-800 font-mono text-[11px] text-center text-slate-500 bg-slate-900/40 select-none">${r}</td>`;
+        for (let c = 0; c < tableData[r].length; c++) {
+          const val = tableData[r][c];
+          html += `<td class="p-2 border border-slate-800 font-mono text-slate-200 relative">
+            <div 
+              contenteditable="true" 
+              class="cell-editable px-1 py-0.5 rounded focus:outline-none min-h-[1.5rem]" 
+              data-row="${r}" 
+              data-col="${c}"
+              onblur="onCellEdited(this)"
+            >${val}</div>
+          </td>`;
+        }
+        html += `</tr>`;
+      }
+      tbody.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    // Add table row
+    function addTableRow() {
+      const tbody = document.getElementById('spreadsheet-body');
+      const table = document.getElementById('spreadsheet-table');
+      if (!tbody || !table) return;
+
+      const colCount = table.querySelectorAll('th').length - 1;
+      const newRowIdx = tbody.querySelectorAll('tr').length + 1;
+
+      const tr = document.createElement('tr');
+      tr.className = "hover:bg-slate-800/30 transition-colors group";
+      tr.setAttribute('data-row-idx', newRowIdx);
+
+      let inner = `<td class="p-2 border border-slate-800 font-mono text-[11px] text-center text-slate-500 bg-slate-900/40 select-none">${newRowIdx}</td>`;
+      for (let c = 0; c < colCount; c++) {
+        inner += `<td class="p-2 border border-slate-800 font-mono text-slate-200 relative">
+          <div contenteditable="true" class="cell-editable px-1 py-0.5 rounded focus:outline-none min-h-[1.5rem]" data-row="${newRowIdx}" data-col="${c}" onblur="onCellEdited(this)"></div>
+        </td>`;
+      }
+      tr.innerHTML = inner;
+      tbody.appendChild(tr);
+    }
+
+    // Delete selected or last row
+    function deleteSelectedRow() {
+      const tbody = document.getElementById('spreadsheet-body');
+      if (!tbody) return;
+      const rows = tbody.querySelectorAll('tr');
+      if (rows.length > 0) {
+        tbody.removeChild(rows[rows.length - 1]);
+        saveAndReExport();
+      }
+    }
+
+    // Copy table to clipboard
+    function copyTableToClipboard() {
+      const data = getTableDataFromDOM();
+      const tsv = data.map(r => r.join("\t")).join("\n");
+      navigator.clipboard.writeText(tsv).then(() => {
+        alert("Table data copied to clipboard as TSV!");
+      });
+    }
+
+    // Modal controls for AI Hybrid Refinement
+    function openLlmRefineModal() {
+      const modal = document.getElementById('llm-modal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeLlmRefineModal() {
+      const modal = document.getElementById('llm-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    async function executeLlmRefinement() {
+      const runBtn = document.getElementById('llm-run-btn');
+      const apiKey = document.getElementById('llm-api-key')?.value?.trim();
+      const tableData = getTableDataFromDOM();
+      const schemaSelector = document.getElementById('schema-selector');
+      const schemaId = schemaSelector ? schemaSelector.value : "retail_invoice";
+
+      if (runBtn) {
+        runBtn.disabled = true;
+        runBtn.innerHTML = `<span class="animate-spin inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span> Refining...`;
+      }
+
+      try {
+        const response = await fetch('/api/llm_refine', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            table_data: tableData,
+            schema_id: schemaId,
+            api_key: apiKey
+          })
+        });
+        const res = await response.json();
+        if (res.success && res.table_data) {
+          renderTableData(res.table_data, res.audit);
+          updateAuditUI(res.audit);
+          saveAndReExport();
+          closeLlmRefineModal();
+          alert(`AI Refinement Completed!\nEngine: ${res.model_used}\nCorrections Applied: ${res.corrections_applied?.length || 0}`);
+        } else {
+          alert("Refinement failed: " + (res.error || "Unknown error"));
+        }
+      } catch (e) {
+        alert("Error calling refinement API: " + e);
+      } finally {
+        if (runBtn) {
+          runBtn.disabled = false;
+          runBtn.innerHTML = `<i data-lucide="wand-2" class="w-3.5 h-3.5"></i> Run AI Refinement`;
+          lucide.createIcons();
+        }
+      }
+    }
   </script>
+
+  <!-- Modal: AI Hybrid Refinement -->
+  <div id="llm-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+          </div>
+          <h3 class="text-sm font-bold text-white">Hybrid AI Vision / LLM Refinement</h3>
+        </div>
+        <button onclick="closeLlmRefineModal()" class="text-slate-400 hover:text-white cursor-pointer"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+
+      <p class="text-xs text-slate-300 leading-relaxed">
+        Post-processes OCR extraction to reconcile numeric values (0 vs O, 1 vs l), format currency floats, ISO dates, and map into standard SMME accounting columns.
+      </p>
+
+      <div>
+        <label class="block text-xs font-mono text-slate-400 mb-1">Optional Google Gemini API Key</label>
+        <input 
+          type="password" 
+          id="llm-api-key" 
+          placeholder="Leave blank for local offline heuristic mode" 
+          class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-purple-500"
+        />
+        <p class="text-[11px] text-slate-500 mt-1">If blank, ImageSense runs the built-in deterministic offline engine.</p>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button 
+          type="button" 
+          onclick="closeLlmRefineModal()" 
+          class="px-4 py-2 rounded-xl text-xs font-mono text-slate-400 hover:text-white cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button 
+          type="button" 
+          onclick="executeLlmRefinement()" 
+          id="llm-run-btn"
+          class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs font-mono shadow-lg shadow-purple-600/20 flex items-center gap-2 cursor-pointer"
+        >
+          <i data-lucide="wand-2" class="w-3.5 h-3.5"></i> Run AI Refinement
+        </button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
